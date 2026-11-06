@@ -371,12 +371,22 @@
       oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
     } catch { /* Audio is optional. */ }
   }
+  function bindActionButton(button, action) {
+    button.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      if (event.pointerType === 'touch' || event.pointerType === 'pen') event.preventDefault();
+      action();
+    });
+    button.addEventListener('click', (event) => {
+      if (event.detail === 0) action();
+    });
+  }
   document.getElementById('startButton').addEventListener('click', startGame);
   document.getElementById('retryButton').addEventListener('click', startGame);
-  ui.abilities.boost.button.addEventListener('click', activateBoost);
-  ui.abilities.skill1.button.addEventListener('click', () => useSkill('skill1'));
-  ui.abilities.skill2.button.addEventListener('click', () => useSkill('skill2'));
-  ui.abilities.skill3.button.addEventListener('click', () => useSkill('skill3'));
+  bindActionButton(ui.abilities.boost.button, activateBoost);
+  bindActionButton(ui.abilities.skill1.button, () => useSkill('skill1'));
+  bindActionButton(ui.abilities.skill2.button, () => useSkill('skill2'));
+  bindActionButton(ui.abilities.skill3.button, () => useSkill('skill3'));
   document.getElementById('soundButton').addEventListener('click', (event) => {
     state.sound = !state.sound; event.currentTarget.textContent = state.sound ? '♫' : '♪';
     event.currentTarget.setAttribute('aria-label', state.sound ? '关闭音效' : '开启音效');

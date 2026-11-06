@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito:wght@500;600;700;800;900&display=swap');
 :root { color-scheme: dark; --ink:#173a33; --deep:#102b27; --deepest:#0c211f; --paper:#f5eedb; --muted-paper:#c8d9c6; --mint:#a9e3bc; --lime:#d7ed6d; --coral:#ff8875; --gold:#f3c866; --mono:'DM Mono','Cascadia Mono',monospace; --round:'Nunito','Microsoft YaHei UI','Microsoft YaHei',sans-serif; }
 * { box-sizing:border-box; }
-html,body { min-height:100%; margin:0; }
+html,body { min-height:100%; margin:0; touch-action:manipulation; }
 body { min-height:100vh; display:grid; place-items:center; padding:24px; overflow:hidden; color:var(--paper); font-family:var(--round); background:radial-gradient(ellipse at 50% 2%,#31594a 0%,#173a33 45%,#0c211f 100%); }
 button { font:inherit; }
 .game-shell { width:min(100%,1440px); }
@@ -28,7 +28,7 @@ button { font:inherit; }
 .hearts .lost { color:#74877a; opacity:.72; }
 .hearts .heart-hit { animation:heart-hit .35s ease-out; }
 @keyframes heart-hit { 50% { color:#fff1b5; transform:scale(1.45); } }
-#gameCanvas { display:block; width:100%; height:auto; aspect-ratio:16 / 9; touch-action:none; }
+#gameCanvas { display:block; width:100%; height:auto; aspect-ratio:16 / 9; touch-action:manipulation; }
 .arena-bottomline { bottom:13px; gap:10px; }
 .xp-track { height:7px; width:min(210px,25%); overflow:hidden; border:1px solid #d5efaa70; border-radius:10px; background:#142e27cc; }
 .xp-track span { display:block; width:0; height:100%; border-radius:inherit; background:var(--lime); transition:width .18s ease; }
@@ -77,12 +77,12 @@ h1 { font-size:clamp(36px,8vw,51px); line-height:1.08; }
 .result-stats { display:flex; justify-content:center; gap:20px; margin:0 0 22px; color:#5b7462; font-size:12px; }
 .result-stats strong { margin-left:4px; color:var(--ink); font:500 13px var(--mono); }
 .mobile-actions { position:fixed; z-index:4; right:max(16px,env(safe-area-inset-right)); bottom:max(14px,env(safe-area-inset-bottom)); width:190px; height:194px; display:none; pointer-events:none; }
-.action-button { position:absolute; display:grid; align-content:center; justify-items:center; gap:1px; overflow:hidden; border:2px solid #dce8bcbd; border-radius:50%; background:radial-gradient(circle at 34% 25%,#668f6bdc,#254b3feF 63%,#152f29fa); color:#f5eedb; box-shadow:0 4px 12px #071915b3,inset 0 0 0 4px #f0f3db16; text-shadow:0 1px 3px #10231dcc; touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+.action-button { position:absolute; display:grid; align-content:center; justify-items:center; gap:1px; overflow:hidden; border:2px solid #dce8bcbd; border-radius:50%; background:radial-gradient(circle at 34% 25%,#668f6bdc,#254b3feF 63%,#152f29fa); color:#f5eedb; box-shadow:0 4px 12px #071915b3,inset 0 0 0 4px #f0f3db16; text-shadow:0 1px 3px #10231dcc; touch-action:manipulation; pointer-events:auto; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
 .action-button:active { transform:scale(.94); border-color:var(--lime); }
 .action-button:disabled { filter:saturate(.62); }
-.skill-one { right:0; bottom:126px; width:52px; height:52px; }
-.skill-two { right:68px; bottom:65px; width:52px; height:52px; }
-.skill-three { right:126px; bottom:0; width:52px; height:52px; }
+.skill-one { right:0; bottom:126px; width:56px; height:56px; }
+.skill-two { right:68px; bottom:65px; width:56px; height:56px; }
+.skill-three { right:126px; bottom:0; width:56px; height:56px; }
 .speed-button { right:0; bottom:0; width:64px; height:64px; border-color:#d7ed6d; background:radial-gradient(circle at 34% 24%,#a7d77f,#47764d 63%,#264a37); }
 .action-icon { z-index:1; font-size:17px; line-height:1; }
 .action-name { z-index:1; font-size:9px; font-weight:900; line-height:1.15; white-space:nowrap; }
@@ -167,7 +167,7 @@ h1 { font-size:clamp(36px,8vw,51px); line-height:1.08; }
   .game-shell { width:100%; }
   .arena-wrap { width:100%; }
   #gameCanvas { width:100%; height:auto; aspect-ratio:16 / 9; }
-  .mobile-actions { transform:scale(.82); transform-origin:bottom right; }
+  .mobile-actions { transform:scale(.88); transform-origin:bottom right; }
   .landscape-tip { display:flex !important; }
 }
 @media (max-height:540px) and (min-width:681px) {
