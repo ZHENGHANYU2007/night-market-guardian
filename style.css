@@ -76,9 +76,12 @@ h1 { font-size:clamp(36px,8vw,51px); line-height:1.08; }
 .result-stats { display:flex; justify-content:center; gap:20px; margin:0 0 22px; color:#5b7462; font-size:12px; }
 .result-stats strong { margin-left:4px; color:var(--ink); font:500 13px var(--mono); }
 .mobile-dash { display:none; }
-.joystick { position:absolute; z-index:3; left:clamp(16px,5vw,42px); bottom:30px; width:min(112px,25vw); aspect-ratio:1; display:none; place-items:center; border:1px solid #eff5d25e; border-radius:50%; background:#102b2794; touch-action:none; user-select:none; }
-.joystick-ring { position:absolute; inset:12%; border:1px solid #d5e7bd60; border-radius:50%; }
-.joystick-knob { position:absolute; left:50%; top:50%; width:42%; aspect-ratio:1; border:2px solid #eff5d2; border-radius:50%; background:#88b88dd9; box-shadow:0 2px 8px #081d1b99; transform:translate(-50%,-50%); }
+.joystick { position:fixed; z-index:4; left:max(20px,env(safe-area-inset-left)); bottom:max(22px,env(safe-area-inset-bottom)); width:clamp(112px,28vw,144px); aspect-ratio:1; display:none; place-items:center; border:1px solid #d4e5bb70; border-radius:50%; background:radial-gradient(circle,#244b3ecf 0 49%,#122b26df 51% 69%,#a7c38835 70% 72%,#102722b8 73%); box-shadow:0 7px 22px #06191588,inset 0 0 0 5px #091e1c4a; touch-action:none; user-select:none; -webkit-user-select:none; }
+.joystick::before { content:""; position:absolute; inset:8%; border:1px solid #d3e2be30; border-radius:50%; pointer-events:none; }
+.joystick-track { position:absolute; inset:25%; border:1px solid #d3e2be56; border-radius:50%; box-shadow:0 0 0 7px #c7d7a80b; pointer-events:none; }
+.joystick-knob { position:absolute; left:50%; top:50%; width:42%; aspect-ratio:1; border:2px solid #edf2d7; border-radius:50%; background:radial-gradient(circle at 35% 28%,#a8d8a8,#54866d 67%,#335847); box-shadow:0 4px 11px #071b18b5,inset 0 1px 3px #f4f3d577; transform:translate(-50%,-50%); transition:filter .12s,box-shadow .12s; pointer-events:none; }
+.joystick.active { border-color:#d7ed6dba; box-shadow:0 7px 26px #06191599,0 0 0 4px #d7ed6d20,inset 0 0 0 5px #091e1c4a; }
+.joystick.active .joystick-knob { filter:brightness(1.13); box-shadow:0 4px 14px #071b18c7,0 0 14px #d7ed6d50,inset 0 1px 3px #f4f3d577; }
 @media (max-width:680px) {
   body { padding:12px; align-items:center; }
   .topbar { height:53px; padding-bottom:9px; }
@@ -116,9 +119,10 @@ h1 { font-size:clamp(36px,8vw,51px); line-height:1.08; }
   .upgrade-card strong { margin:0; }
   .mobile-dash { position:fixed; z-index:3; right:18px; bottom:22px; display:none; width:62px; height:62px; border:2px solid #e3efc5; border-radius:50%; background:#274c3edb; color:var(--lime); font-weight:900; touch-action:manipulation; }
   .game-shell.is-running~.mobile-dash { display:block; }
-  .game-shell.is-running .joystick { display:grid; }
 }
-@media (hover:none) and (pointer:coarse) { .game-shell.is-running .joystick { display:grid; } }
+@media (max-width:800px), (pointer:coarse) {
+  .game-shell.is-running~.joystick { display:grid; }
+}
 @media (max-height:540px) and (min-width:681px) {
   body { padding:8px; }
   .game-shell { width:min(100%,900px); }

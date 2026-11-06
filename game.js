@@ -11,7 +11,7 @@
   const state = {
     mode: 'menu', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, lastFrame: 0,
     spawnClock: 0, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [],
-    score: 0, best: readBest(), sound: true, pointer: null, joystick: { active: false, pointerId: null, dx: 0, dy: 0 },
+    score: 0, best: readBest(), sound: true, joystick: { active: false, pointerId: null, dx: 0, dy: 0 },
     player: { x: 480, y: 300, radius: 17, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 0, facing: 1 },
     boss: null, upgrades: { magnet: 90, dash: 1 },
   };
@@ -58,12 +58,14 @@
     state.joystick.pointerId = null;
     state.joystick.dx = 0;
     state.joystick.dy = 0;
+    ui.joystick.classList.remove('active');
+    ui.joystick.setAttribute('aria-valuetext', '居中');
     ui.joystickKnob.style.transform = 'translate(-50%, -50%)';
   }
   function startGame() {
     Object.assign(state, { mode: 'playing', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, spawnClock: 0.7, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [], boss: null });
     Object.assign(state.player, { x: canvas.width / 2, y: canvas.height / 2, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 1, facing: 1 });
-    state.upgrades = { magnet: 90, dash: 1 }; keys.clear(); state.pointer = null; resetJoystick();
+    state.upgrades = { magnet: 90, dash: 1 }; keys.clear(); resetJoystick();
     startOverlay.classList.add('hidden'); upgradeOverlay.classList.add('hidden'); gameOverOverlay.classList.add('hidden'); shell.classList.add('is-running'); updateHud();
   }
   function endGame() {
@@ -126,7 +128,6 @@
     if (keys.has('arrowup') || keys.has('w')) dy--;
     if (keys.has('arrowdown') || keys.has('s')) dy++;
     if (state.joystick.active) { dx += state.joystick.dx; dy += state.joystick.dy; }
-    if (state.pointer) { const px = state.pointer.x - p.x; const py = state.pointer.y - p.y; const dist = Math.hypot(px, py); if (dist > 11) { dx += px / dist; dy += py / dist; } }
     const length = Math.hypot(dx, dy);
     if (length > 0) { dx /= length; dy /= length; p.x += dx * p.speed * dt; p.y += dy * p.speed * dt; if (dx) p.facing = dx > 0 ? 1 : -1; }
     p.x = Math.max(p.radius + 5, Math.min(canvas.width - p.radius - 5, p.x)); p.y = Math.max(p.radius + 30, Math.min(canvas.height - p.radius - 30, p.y));
@@ -277,9 +278,6 @@
     const dt = Math.min((timestamp - (state.lastFrame || timestamp)) / 1000, 0.035);
     state.lastFrame = timestamp; update(dt); draw(timestamp); requestAnimationFrame(frame);
   }
-  function canvasPoint(event) {
-    const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) / rect.width * canvas.width, y: (event.clientY - rect.top) / rect.height * canvas.height };
-  }
   let audioContext = null;
   function playTone(frequency, duration, type) {
     if (!state.sound) return;
@@ -304,22 +302,28 @@
     keys.add(key); if (key === ' ' && !event.repeat) dash();
   });
   window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
-  window.addEventListener('blur', () => { keys.clear(); state.pointer = null; resetJoystick(); });
+  window.addEventListener('blur', () => { keys.clear(); resetJoystick(); });
   function updateJoystick(event) {
     const rect = ui.joystick.getBoundingClientRect();
-    const maxDistance = rect.width * 0.28;
+    const knob = ui.joystickKnob.getBoundingClientRect();
+    const maxDistance = (rect.width - knob.width) / 2 - 4;
     const dx = event.clientX - (rect.left + rect.width / 2);
     const dy = event.clientY - (rect.top + rect.height / 2);
     const distance = Math.hypot(dx, dy);
     const scale = distance > maxDistance ? maxDistance / distance : 1;
     const offsetX = dx * scale;
     const offsetY = dy * scale;
-    state.joystick.dx = distance < 8 ? 0 : dx / Math.max(distance, maxDistance) * Math.min(1, distance / maxDistance);
-    state.joystick.dy = distance < 8 ? 0 : dy / Math.max(distance, maxDistance) * Math.min(1, distance / maxDistance);
+    const strength = distance < 8 ? 0 : Math.min(1, distance / maxDistance);
+    state.joystick.dx = distance < 8 ? 0 : dx / distance * strength;
+    state.joystick.dy = distance < 8 ? 0 : dy / distance * strength;
     ui.joystickKnob.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+    ui.joystick.classList.toggle('active', strength > 0);
+    const directions = ['东', '东南', '南', '西南', '西', '西北', '北', '东北'];
+    const direction = strength > 0 ? directions[Math.round((Math.atan2(state.joystick.dy, state.joystick.dx) * 4 / Math.PI + 8) % 8)] : '居中';
+    ui.joystick.setAttribute('aria-valuetext', direction);
   }
   ui.joystick.addEventListener('pointerdown', (event) => {
-    if (state.mode !== 'playing') return;
+    if (state.mode !== 'playing' || state.joystick.active) return;
     event.preventDefault();
     event.stopPropagation();
     state.joystick.active = true;
@@ -333,13 +337,11 @@
   ui.joystick.addEventListener('pointerup', (event) => {
     if (event.pointerId === state.joystick.pointerId) resetJoystick();
   });
-  ui.joystick.addEventListener('pointercancel', resetJoystick);
-  ui.joystick.addEventListener('lostpointercapture', resetJoystick);
-  canvas.addEventListener('pointerdown', (event) => {
-    if (event.pointerType === 'touch' && state.mode === 'playing') { state.pointer = canvasPoint(event); canvas.setPointerCapture(event.pointerId); }
+  ui.joystick.addEventListener('pointercancel', (event) => {
+    if (event.pointerId === state.joystick.pointerId) resetJoystick();
   });
-  canvas.addEventListener('pointermove', (event) => { if (state.pointer && event.pointerType === 'touch') state.pointer = canvasPoint(event); });
-  canvas.addEventListener('pointerup', (event) => { if (event.pointerType === 'touch') state.pointer = null; });
-  canvas.addEventListener('pointercancel', () => { state.pointer = null; });
+  ui.joystick.addEventListener('lostpointercapture', (event) => {
+    if (event.pointerId === state.joystick.pointerId) resetJoystick();
+  });
   ui.best.textContent = formatTime(state.best); updateHud(); requestAnimationFrame(frame);
 })();

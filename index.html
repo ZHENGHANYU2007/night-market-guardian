@@ -33,10 +33,6 @@
         <span class="arena-tip" id="arenaTip">移动躲避 · 自动攻击最近的敌人</span>
       </div>
       <div class="boss-hud hidden" id="bossHud"><span>今晚的催单王</span><div class="boss-track"><i id="bossFill"></i></div></div>
-      <div class="joystick" id="joystick" role="application" aria-label="移动摇杆">
-        <span class="joystick-ring"></span>
-        <span class="joystick-knob" id="joystickKnob"></span>
-      </div>
     </section>
     <footer class="controls">
       <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> 移动</span>
@@ -44,6 +40,10 @@
       <span class="record">最高纪录 <strong id="bestStat">00:00</strong></span>
     </footer>
   </main>
+  <div class="joystick" id="joystick" aria-label="移动摇杆" role="application">
+    <span class="joystick-track"></span>
+    <span class="joystick-knob" id="joystickKnob"></span>
+  </div>
   <div class="overlay" id="startOverlay">
     <div class="intro-card">
       <div class="mascot-pair" aria-hidden="true"><span class="mascot dragon">团</span><span class="mascot mouse">急</span><span class="sparkle">✦</span></div>
