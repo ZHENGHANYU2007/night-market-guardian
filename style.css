@@ -83,10 +83,10 @@ h1 { font-size:clamp(36px,8vw,51px); line-height:1.08; }
 .skill-one { right:0; bottom:126px; width:52px; height:52px; }
 .skill-two { right:68px; bottom:65px; width:52px; height:52px; }
 .skill-three { right:126px; bottom:0; width:52px; height:52px; }
-.dodge-button { right:0; bottom:0; width:64px; height:64px; border-color:#f0d996; background:radial-gradient(circle at 34% 24%,#c9a756,#745a31 63%,#45371f); }
+.speed-button { right:0; bottom:0; width:64px; height:64px; border-color:#d7ed6d; background:radial-gradient(circle at 34% 24%,#a7d77f,#47764d 63%,#264a37); }
 .action-icon { z-index:1; font-size:17px; line-height:1; }
 .action-name { z-index:1; font-size:9px; font-weight:900; line-height:1.15; white-space:nowrap; }
-.dodge-button .action-icon { font-size:21px; }
+.speed-button .action-icon { font-size:21px; }
 .cooldown-mask { position:absolute; z-index:2; inset:0; display:grid; place-items:center; border-radius:inherit; background:#101a18b8; color:white; font:500 14px var(--mono); opacity:0; pointer-events:none; }
 .cooldown-mask:not(:empty) { opacity:1; }
 .joystick { position:fixed; z-index:4; left:max(20px,env(safe-area-inset-left)); bottom:max(22px,env(safe-area-inset-bottom)); width:clamp(112px,28vw,144px); aspect-ratio:1; display:none; place-items:center; border:1px solid #d4e5bb70; border-radius:50%; background:radial-gradient(circle,#244b3ecf 0 49%,#122b26df 51% 69%,#a7c38835 70% 72%,#102722b8 73%); box-shadow:0 7px 22px #06191588,inset 0 0 0 5px #091e1c4a; touch-action:none; user-select:none; -webkit-user-select:none; }

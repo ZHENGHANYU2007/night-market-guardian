@@ -11,10 +11,10 @@
   const state = {
     mode: 'menu', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, lastFrame: 0,
     spawnClock: 0, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [], shockwaves: [],
-    cooldowns: { skill1: 0, skill2: 0, skill3: 0 },
+    cooldowns: { skill1: 0, skill2: 0, skill3: 0, boost: 0 },
     score: 0, best: readBest(), sound: true, joystick: { active: false, pointerId: null, dx: 0, dy: 0 },
-    player: { x: 640, y: 360, radius: 17, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 0, shield: 0, facing: 1 },
-    boss: null, upgrades: { magnet: 90, dash: 1 },
+    player: { x: 640, y: 360, radius: 17, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, boost: 0, invulnerable: 0, shield: 0, facing: 1 },
+    boss: null, upgrades: { magnet: 90, shieldDuration: 3 },
   };
   const ui = {
     time: document.getElementById('timeStat'), wave: document.getElementById('waveStat'), kills: document.getElementById('killStat'),
@@ -25,7 +25,7 @@
       skill1: { button: document.getElementById('skill1Button'), timer: document.getElementById('skill1Cooldown'), cooldown: 8 },
       skill2: { button: document.getElementById('skill2Button'), timer: document.getElementById('skill2Cooldown'), cooldown: 14 },
       skill3: { button: document.getElementById('skill3Button'), timer: document.getElementById('skill3Cooldown'), cooldown: 18 },
-      dash: { button: document.getElementById('dashButton'), timer: document.getElementById('dashCooldown'), cooldown: 1.25 },
+      boost: { button: document.getElementById('boostButton'), timer: document.getElementById('boostCooldown'), cooldown: 5 },
     },
   };
   const C = { ink: '#173a33', paper: '#f5eedb', mint: '#a9e3bc', lime: '#d7ed6d', coral: '#ff8875' };
@@ -35,7 +35,7 @@
     { icon: '☄', title: '连环奶弹', copy: '攻击速度 +18%', apply: () => { state.player.fireRate *= 0.82; } },
     { icon: '♥', title: '加一条命', copy: '生命上限 +1，并回复 1 点', apply: () => { state.player.maxHp++; state.player.hp = Math.min(state.player.maxHp, state.player.hp + 1); updateHud(); } },
     { icon: '✹', title: '磁吸小挎包', copy: '经验糖果吸引范围 +90', apply: () => { state.upgrades.magnet += 90; } },
-    { icon: '⚡', title: '奶龙滑步', copy: '冲刺冷却缩短 20%', apply: () => { state.upgrades.dash *= 0.8; } },
+    { icon: '◉', title: '泡泡加厚', copy: '护盾持续时间 +1 秒', apply: () => { state.upgrades.shieldDuration += 1; } },
   ];
   const stars = Array.from({ length: 48 }, (_, i) => ({ x: (i * 197 + 31) % canvas.width, y: (i * 113 + 17) % canvas.height, size: i % 5 === 0 ? 2 : 1, phase: i * 0.73 % 7 }));
   function resizeWorld() {
@@ -74,7 +74,7 @@
   }
   function updateAbilityHud() {
     for (const [name, ability] of Object.entries(ui.abilities)) {
-      const remaining = name === 'dash' ? state.player.dash : state.cooldowns[name];
+      const remaining = state.cooldowns[name];
       const unavailable = state.mode !== 'playing' || remaining > 0 || (name === 'skill3' && state.player.hp >= state.player.maxHp);
       ability.button.disabled = unavailable;
       ability.timer.textContent = remaining > 0 ? String(Math.ceil(remaining)) : '';
@@ -100,9 +100,9 @@
     ui.joystickKnob.style.transform = 'translate(-50%, -50%)';
   }
   function startGame() {
-    Object.assign(state, { mode: 'playing', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, spawnClock: 0.7, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [], shockwaves: [], cooldowns: { skill1: 0, skill2: 0, skill3: 0 }, boss: null });
-    Object.assign(state.player, { x: canvas.width / 2, y: canvas.height / 2, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 1, shield: 0, facing: 1 });
-    state.upgrades = { magnet: 90, dash: 1 }; keys.clear(); resetJoystick();
+    Object.assign(state, { mode: 'playing', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, spawnClock: 0.7, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [], shockwaves: [], cooldowns: { skill1: 0, skill2: 0, skill3: 0, boost: 0 }, boss: null });
+    Object.assign(state.player, { x: canvas.width / 2, y: canvas.height / 2, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, boost: 0, invulnerable: 1, shield: 0, facing: 1 });
+    state.upgrades = { magnet: 90, shieldDuration: 3 }; keys.clear(); resetJoystick();
     startOverlay.classList.add('hidden'); upgradeOverlay.classList.add('hidden'); gameOverOverlay.classList.add('hidden'); shell.classList.add('is-running'); updateHud();
   }
   function endGame() {
@@ -166,22 +166,16 @@
     if (keys.has('arrowdown') || keys.has('s')) dy++;
     if (state.joystick.active) { dx += state.joystick.dx; dy += state.joystick.dy; }
     const length = Math.hypot(dx, dy);
-    if (length > 0) { dx /= length; dy /= length; p.x += dx * p.speed * dt; p.y += dy * p.speed * dt; if (dx) p.facing = dx > 0 ? 1 : -1; }
+    if (length > 0) { dx /= length; dy /= length; const speed = p.speed * (p.boost > 0 ? 1.65 : 1); p.x += dx * speed * dt; p.y += dy * speed * dt; if (dx) p.facing = dx > 0 ? 1 : -1; }
     p.x = Math.max(p.radius + 5, Math.min(canvas.width - p.radius - 5, p.x)); p.y = Math.max(p.radius + 30, Math.min(canvas.height - p.radius - 30, p.y));
-    p.dash = Math.max(0, p.dash - dt); p.invulnerable = Math.max(0, p.invulnerable - dt);
+    p.boost = Math.max(0, p.boost - dt); p.invulnerable = Math.max(0, p.invulnerable - dt);
   }
-  function dash() {
-    if (state.mode !== 'playing' || state.player.dash > 0) return;
-    const p = state.player; let dx = 0; let dy = 0;
-    if (keys.has('arrowleft') || keys.has('a')) dx--;
-    if (keys.has('arrowright') || keys.has('d')) dx++;
-    if (keys.has('arrowup') || keys.has('w')) dy--;
-    if (keys.has('arrowdown') || keys.has('s')) dy++;
-    if (state.joystick.active) { dx += state.joystick.dx; dy += state.joystick.dy; }
-    if (!dx && !dy) { const target = nearestEnemy(); dx = target ? p.x - target.x : p.facing; dy = target ? p.y - target.y : 0; }
-    const length = Math.hypot(dx, dy) || 1;
-    p.x = Math.max(p.radius, Math.min(canvas.width - p.radius, p.x + dx / length * 100)); p.y = Math.max(p.radius + 20, Math.min(canvas.height - p.radius - 20, p.y + dy / length * 100));
-    p.dash = 1.25 * state.upgrades.dash; p.invulnerable = Math.max(p.invulnerable, 0.32); burst(p.x, p.y, C.mint, 8); playTone(850, 0.07, 'sine');
+  function activateBoost() {
+    if (state.mode !== 'playing' || state.cooldowns.boost > 0) return;
+    const p = state.player;
+    p.boost = 1;
+    state.cooldowns.boost = ui.abilities.boost.cooldown;
+    burst(p.x, p.y, C.mint, 8); playTone(850, 0.07, 'sine');
     updateAbilityHud();
   }
   function useSkill(name) {
@@ -201,7 +195,7 @@
       floatText(p.x, p.y - 42, '奶泡爆发！', '#f3e39b', 15);
       playTone(720, 0.16, 'triangle');
     } else if (name === 'skill2') {
-      p.shield = 3;
+      p.shield = state.upgrades.shieldDuration;
       state.cooldowns.skill2 = ui.abilities.skill2.cooldown;
       floatText(p.x, p.y - 35, '泡泡护盾！', '#a8e7e5', 14);
       playTone(560, 0.18, 'sine');
@@ -300,7 +294,7 @@
       ctx.lineWidth = 3; ctx.fillStyle = '#91e6dc20';
       ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
-    if (p.dash > 0) { ctx.fillStyle = '#c9ffe755'; ctx.beginPath(); ctx.ellipse(-23, 0, 26, 13, 0, 0, Math.PI * 2); ctx.fill(); }
+    if (p.boost > 0) { ctx.fillStyle = '#c9ffe755'; ctx.beginPath(); ctx.ellipse(-23, 0, 26, 13, 0, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = '#173a33'; ctx.beginPath(); ctx.ellipse(0, 15, 17, 7, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#99d9ad'; ctx.beginPath(); ctx.ellipse(0, 1, 16, 17, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#d7efc5'; ctx.beginPath(); ctx.ellipse(3, 7, 8, 8, 0, 0, Math.PI * 2); ctx.fill();
@@ -379,7 +373,7 @@
   }
   document.getElementById('startButton').addEventListener('click', startGame);
   document.getElementById('retryButton').addEventListener('click', startGame);
-  document.getElementById('dashButton').addEventListener('pointerdown', (event) => { event.preventDefault(); dash(); });
+  ui.abilities.boost.button.addEventListener('click', activateBoost);
   ui.abilities.skill1.button.addEventListener('click', () => useSkill('skill1'));
   ui.abilities.skill2.button.addEventListener('click', () => useSkill('skill2'));
   ui.abilities.skill3.button.addEventListener('click', () => useSkill('skill3'));
@@ -392,7 +386,7 @@
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'w', 'a', 's', 'd', 'q', 'e', 'r'].includes(key)) event.preventDefault();
     keys.add(key);
     if (event.repeat) return;
-    if (key === ' ') dash();
+    if (key === ' ') activateBoost();
     if (key === 'q') useSkill('skill1');
     if (key === 'e') useSkill('skill2');
     if (key === 'r') useSkill('skill3');
