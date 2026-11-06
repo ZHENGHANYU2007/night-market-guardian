@@ -11,13 +11,14 @@
   const state = {
     mode: 'menu', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, lastFrame: 0,
     spawnClock: 0, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [],
-    score: 0, best: readBest(), sound: true, pointer: null,
+    score: 0, best: readBest(), sound: true, pointer: null, joystick: { active: false, pointerId: null, dx: 0, dy: 0 },
     player: { x: 480, y: 300, radius: 17, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 0, facing: 1 },
     boss: null, upgrades: { magnet: 90, dash: 1 },
   };
   const ui = {
     time: document.getElementById('timeStat'), wave: document.getElementById('waveStat'), kills: document.getElementById('killStat'),
-    level: document.getElementById('levelText'), hearts: document.getElementById('hearts'), xpFill: document.getElementById('xpFill'),
+    level: document.getElementById('levelText'), hearts: document.getElementById('hearts'), hpCount: document.getElementById('hpCount'),
+    health: document.querySelector('.health-hud'), joystick: document.getElementById('joystick'), joystickKnob: document.getElementById('joystickKnob'), xpFill: document.getElementById('xpFill'),
     xpLabel: document.getElementById('xpLabel'), best: document.getElementById('bestStat'), bossHud: document.getElementById('bossHud'), bossFill: document.getElementById('bossFill'),
   };
   const C = { ink: '#173a33', paper: '#f5eedb', mint: '#a9e3bc', lime: '#d7ed6d', coral: '#ff8875' };
@@ -37,15 +38,32 @@
     ui.time.textContent = formatTime(state.time); ui.wave.textContent = String(state.wave); ui.kills.textContent = String(state.kills);
     ui.level.textContent = `Lv. ${state.level}`; ui.xpFill.style.width = `${Math.min(100, state.xp / state.xpNeeded * 100)}%`;
     ui.xpLabel.textContent = `经验 ${state.xp} / ${state.xpNeeded}`;
-    ui.hearts.innerHTML = Array.from({ length: state.player.maxHp }, (_, i) => `<span class="${i >= state.player.hp ? 'lost' : ''}">♥</span>`).join('');
+    ui.hpCount.textContent = `${state.player.hp} / ${state.player.maxHp}`;
+    ui.hearts.setAttribute('aria-label', `生命值 ${state.player.hp} / ${state.player.maxHp}`);
+    ui.hearts.innerHTML = Array.from({ length: state.player.maxHp }, (_, i) => `<span class="${i >= state.player.hp ? 'lost' : ''}">${i < state.player.hp ? '♥' : '♡'}</span>`).join('');
     ui.best.textContent = formatTime(state.best);
     if (state.boss) { ui.bossHud.classList.remove('hidden'); ui.bossFill.style.width = `${Math.max(0, state.boss.hp / state.boss.maxHp * 100)}%`; }
     else ui.bossHud.classList.add('hidden');
   }
+  function showDamageFeedback(damage) {
+    ui.health.classList.remove('damaged');
+    requestAnimationFrame(() => {
+      ui.health.classList.add('damaged');
+      window.setTimeout(() => ui.health.classList.remove('damaged'), 380);
+    });
+    floatText(state.player.x, state.player.y - 27, `-${damage} ♥`, C.coral, 15);
+  }
+  function resetJoystick() {
+    state.joystick.active = false;
+    state.joystick.pointerId = null;
+    state.joystick.dx = 0;
+    state.joystick.dy = 0;
+    ui.joystickKnob.style.transform = 'translate(-50%, -50%)';
+  }
   function startGame() {
     Object.assign(state, { mode: 'playing', time: 0, wave: 1, kills: 0, level: 1, xp: 0, xpNeeded: 6, spawnClock: 0.7, attackClock: 0, bossClock: 0, enemies: [], shots: [], drops: [], particles: [], floating: [], boss: null });
     Object.assign(state.player, { x: canvas.width / 2, y: canvas.height / 2, speed: 205, hp: 4, maxHp: 4, damage: 1, fireRate: 0.55, shotSpeed: 430, dash: 0, invulnerable: 1, facing: 1 });
-    state.upgrades = { magnet: 90, dash: 1 }; keys.clear(); state.pointer = null;
+    state.upgrades = { magnet: 90, dash: 1 }; keys.clear(); state.pointer = null; resetJoystick();
     startOverlay.classList.add('hidden'); upgradeOverlay.classList.add('hidden'); gameOverOverlay.classList.add('hidden'); shell.classList.add('is-running'); updateHud();
   }
   function endGame() {
@@ -107,6 +125,7 @@
     if (keys.has('arrowright') || keys.has('d')) dx++;
     if (keys.has('arrowup') || keys.has('w')) dy--;
     if (keys.has('arrowdown') || keys.has('s')) dy++;
+    if (state.joystick.active) { dx += state.joystick.dx; dy += state.joystick.dy; }
     if (state.pointer) { const px = state.pointer.x - p.x; const py = state.pointer.y - p.y; const dist = Math.hypot(px, py); if (dist > 11) { dx += px / dist; dy += py / dist; } }
     const length = Math.hypot(dx, dy);
     if (length > 0) { dx /= length; dy /= length; p.x += dx * p.speed * dt; p.y += dy * p.speed * dt; if (dx) p.facing = dx > 0 ? 1 : -1; }
@@ -120,6 +139,7 @@
     if (keys.has('arrowright') || keys.has('d')) dx++;
     if (keys.has('arrowup') || keys.has('w')) dy--;
     if (keys.has('arrowdown') || keys.has('s')) dy++;
+    if (state.joystick.active) { dx += state.joystick.dx; dy += state.joystick.dy; }
     if (!dx && !dy) { const target = nearestEnemy(); dx = target ? p.x - target.x : p.facing; dy = target ? p.y - target.y : 0; }
     const length = Math.hypot(dx, dy) || 1;
     p.x = Math.max(p.radius, Math.min(canvas.width - p.radius, p.x + dx / length * 100)); p.y = Math.max(p.radius + 20, Math.min(canvas.height - p.radius - 20, p.y + dy / length * 100));
@@ -145,7 +165,7 @@
       const pace = enemy.kind === 'boss' && length < 115 ? 0.28 : 1;
       enemy.x += dx / length * enemy.speed * pace * dt; enemy.y += dy / length * enemy.speed * pace * dt; enemy.phase += dt * 4; enemy.hit = Math.max(0, enemy.hit - dt);
       if (length < enemy.radius + state.player.radius && state.player.invulnerable <= 0) {
-        state.player.hp -= enemy.damage; state.player.invulnerable = 0.82; burst(state.player.x, state.player.y, C.coral, 12); updateHud(); playTone(130, 0.13, 'sawtooth');
+        state.player.hp = Math.max(0, state.player.hp - enemy.damage); state.player.invulnerable = 0.82; burst(state.player.x, state.player.y, C.coral, 12); updateHud(); showDamageFeedback(enemy.damage); playTone(130, 0.13, 'sawtooth');
         if (state.player.hp <= 0) { endGame(); return; }
       }
     }
@@ -284,7 +304,37 @@
     keys.add(key); if (key === ' ' && !event.repeat) dash();
   });
   window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
-  window.addEventListener('blur', () => { keys.clear(); state.pointer = null; });
+  window.addEventListener('blur', () => { keys.clear(); state.pointer = null; resetJoystick(); });
+  function updateJoystick(event) {
+    const rect = ui.joystick.getBoundingClientRect();
+    const maxDistance = rect.width * 0.28;
+    const dx = event.clientX - (rect.left + rect.width / 2);
+    const dy = event.clientY - (rect.top + rect.height / 2);
+    const distance = Math.hypot(dx, dy);
+    const scale = distance > maxDistance ? maxDistance / distance : 1;
+    const offsetX = dx * scale;
+    const offsetY = dy * scale;
+    state.joystick.dx = distance < 8 ? 0 : dx / Math.max(distance, maxDistance) * Math.min(1, distance / maxDistance);
+    state.joystick.dy = distance < 8 ? 0 : dy / Math.max(distance, maxDistance) * Math.min(1, distance / maxDistance);
+    ui.joystickKnob.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+  }
+  ui.joystick.addEventListener('pointerdown', (event) => {
+    if (state.mode !== 'playing') return;
+    event.preventDefault();
+    event.stopPropagation();
+    state.joystick.active = true;
+    state.joystick.pointerId = event.pointerId;
+    ui.joystick.setPointerCapture(event.pointerId);
+    updateJoystick(event);
+  });
+  ui.joystick.addEventListener('pointermove', (event) => {
+    if (state.joystick.active && event.pointerId === state.joystick.pointerId) updateJoystick(event);
+  });
+  ui.joystick.addEventListener('pointerup', (event) => {
+    if (event.pointerId === state.joystick.pointerId) resetJoystick();
+  });
+  ui.joystick.addEventListener('pointercancel', resetJoystick);
+  ui.joystick.addEventListener('lostpointercapture', resetJoystick);
   canvas.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'touch' && state.mode === 'playing') { state.pointer = canvasPoint(event); canvas.setPointerCapture(event.pointerId); }
   });
